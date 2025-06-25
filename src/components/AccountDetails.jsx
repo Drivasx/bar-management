@@ -503,18 +503,18 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
   if (loading) return <div>Cargando detalles de la cuenta...</div>;
 
   return (
-    <div className="flex gap-6 h-full">
+    <div className="flex gap-4 h-full">
       <div className="flex-1 flex flex-col h-full">
-        <h2 className="text-xl font-bold flex-shrink-0">
+        <h2 className="text-lg font-bold flex-shrink-0 mb-2">
           Detalles de la Cuenta
         </h2>
 
-        {/* Formulario - altura fija */}
-        <div className="p-4 border rounded-lg bg-gray-50 flex-shrink-0 mb-4">
-          <h3 className="text-lg font-semibold mb-3">Agregar Producto</h3>
-          <div className="flex items-end gap-4 justify-between">
-            <div className="flex gap-4 items-end">
-              <FormControl sx={{ minWidth: 250 }}>
+        {/* Formulario - altura fija optimizada */}
+        <div className="p-3 border rounded-lg bg-gray-50 flex-shrink-0 mb-3">
+          <h3 className="text-base font-semibold mb-2">Agregar Producto</h3>
+          <div className="flex items-end gap-3 justify-between">
+            <div className="flex gap-3 items-end">
+              <FormControl sx={{ minWidth: 200 }} size="small">
                 <InputLabel id="product-select-label">Producto</InputLabel>
                 <Select
                   labelId="product-select-label"
@@ -525,7 +525,7 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                   {products.map((product) => (
                     <MenuItem key={product.id} value={product.id}>
                       <div className="flex flex-col">
-                        <span>
+                        <span className="text-sm">
                           {product.name} - {formatCurrency(product.price)}
                         </span>
                         <span className="text-gray-500 text-xs">
@@ -543,19 +543,27 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                 value={quantity}
                 onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
                 InputProps={{ inputProps: { min: 1 } }}
-                sx={{ width: 120 }}
+                sx={{ width: 100 }}
+                size="small"
               />
 
               <Button
                 variant="contained"
                 onClick={addProductToAccount}
                 disabled={!selectedProduct || quantity <= 0}
-                sx={{ height: 56 }}
+                size="small"
               >
                 Agregar
               </Button>
             </div>
-            <Button variant="contained" color="success" onClick={openDialog}>Registrar nuevo producto</Button>
+            <Button 
+              variant="contained" 
+              color="success" 
+              onClick={openDialog}
+              size="small"
+            >
+              Nuevo producto
+            </Button>
           </div>
         </div>
         <Dialog
@@ -623,21 +631,28 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
         </DialogActions>
       </Dialog>
 
-        <div className="flex-1 overflow-hidden mb-4">
+        <div className="flex-1 overflow-hidden mb-3">
           <TableContainer
             className="w-full h-full"
             component={Paper}
             sx={{
               maxHeight: "100%",
               overflow: "auto",
+              '& .MuiTableCell-root': {
+                padding: '8px 12px',
+                fontSize: '0.875rem'
+              },
+              '& .MuiTableCell-head': {
+                fontWeight: 'bold',
+                backgroundColor: 'white',
+                fontSize: '0.875rem'
+              }
             }}
           >
-            <Table stickyHeader>
+            <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell
-                    sx={{ fontWeight: "bold", backgroundColor: "white" }}
-                  >
+                  <TableCell>
                     <input
                       type="checkbox"
                       onChange={(e) => {
@@ -656,37 +671,13 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                         console.log("Detalles actualizados:", updatedDetails);
                       }}
                     />
-                    &nbsp;&nbsp;Todos
+                    &nbsp;Todos
                   </TableCell>
-                  <TableCell
-                    sx={{ fontWeight: "bold", backgroundColor: "white" }}
-                  >
-                    Producto
-                  </TableCell>
-                  <TableCell
-                    sx={{ fontWeight: "bold", backgroundColor: "white" }}
-                    align="right"
-                  >
-                    Precio Unitario
-                  </TableCell>
-                  <TableCell
-                    sx={{ fontWeight: "bold", backgroundColor: "white" }}
-                    align="right"
-                  >
-                    Cantidad
-                  </TableCell>
-                  <TableCell
-                    sx={{ fontWeight: "bold", backgroundColor: "white" }}
-                    align="right"
-                  >
-                    Total
-                  </TableCell>
-                  <TableCell
-                    sx={{ fontWeight: "bold", backgroundColor: "white" }}
-                    align="center"
-                  >
-                    Acciones
-                  </TableCell>
+                  <TableCell>Producto</TableCell>
+                  <TableCell align="right">Precio Unit.</TableCell>
+                  <TableCell align="right">Cant.</TableCell>
+                  <TableCell align="right">Total</TableCell>
+                  <TableCell align="center">Acciones</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody className="">
@@ -748,26 +739,27 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                         {formatCurrency(detail.total_per_item)}
                       </TableCell>
                       <TableCell align="center">
-                        <Button
-                          sx={{ marginRight: 1 }}
-                          variant="outlined"
-                          color="error"
-                          size="small"
-                          onClick={() =>
-                            removeProductFromAccount(detail.product_id)
-                          }
-                        >
-                          Eliminar
-                        </Button>
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() =>
-                            addItemToRound(detail)
-                          }
-                        >
-                          Agregar a la ronda
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            onClick={() =>
+                              removeProductFromAccount(detail.product_id)
+                            }
+                            sx={{ minWidth: 'auto', px: 1, fontSize: '0.75rem' }}
+                          >
+                            Eliminar
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => addItemToRound(detail)}
+                            sx={{ minWidth: 'auto', px: 1, fontSize: '0.75rem' }}
+                          >
+                            Ronda
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -794,17 +786,22 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
         </div>
 
         {/* Botones inferiores - altura fija, siempre visibles */}
-        <div className="flex justify-between flex-shrink-0">
+        <div className="flex justify-between flex-shrink-0 gap-2">
           <Button
             variant="contained"
             color="error"
             onClick={() => closeAccount(accountId)}
+            size="small"
           >
             Cerrar cuenta
           </Button>
           <div className="flex gap-2">
             {isRoundSaved && (
-              <Button variant="outlined" onClick={deleteEntireRound}>
+              <Button 
+                variant="outlined" 
+                onClick={deleteEntireRound}
+                size="small"
+              >
                 Cancelar ronda
               </Button>
             )}
@@ -812,24 +809,25 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
               variant="contained"
               disabled={productsToRound.length === 0 || isRoundSaved}
               onClick={registerRound}
+              size="small"
             >
-              Registrar una ronda
+              Registrar ronda
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Panel de ronda - fijo en el lado derecho */}
-      <div className="w-80 flex-shrink-0">
+      {/* Panel de ronda - más compacto */}
+      <div className="w-72 flex-shrink-0">
         {isRoundSaved && (
-          <div className="bg-green-100 text-green-800 p-4 rounded-lg shadow-lg h-fit">
-            <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold text-lg">Ronda Guardada</h3>
+          <div className="bg-green-100 text-green-800 p-3 rounded-lg shadow-lg h-fit">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-bold text-base">Ronda Guardada</h3>
               <Button
                 size="small"
                 color="error"
                 onClick={deleteEntireRound}
-                sx={{ minWidth: "auto", padding: "4px 8px" }}
+                sx={{ minWidth: "auto", padding: "2px 6px", fontSize: '0.75rem' }}
               >
                 ✕
               </Button>
@@ -840,6 +838,10 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                 width: "100%",
                 bgcolor: "background.paper",
                 borderRadius: 1,
+                padding: '4px',
+                '& .MuiListItem-root': {
+                  padding: '4px 8px'
+                }
               }}
             >
               {round.map((item) => (
@@ -848,9 +850,10 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                     <div className="flex justify-between items-center">
                       <ListItemText
                         primary={`${item.Product?.name}`}
+                        primaryTypographyProps={{ fontSize: '0.875rem' }}
                         secondary={
                           editingRoundItem === item.product_id ? (
-                            <div className="flex gap-2 mt-1">
+                            <div className="flex gap-1 mt-1">
                               <TextField
                                 type="number"
                                 size="small"
@@ -871,20 +874,21 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                                   );
                                 }}
                                 autoFocus
+                                sx={{ width: '60px' }}
                               />
                               <Button
                                 size="small"
                                 onClick={() => setEditingRoundItem(null)}
+                                sx={{ fontSize: '0.75rem', minWidth: 'auto', px: 1 }}
                               >
-                                Cancelar
+                                ✓
                               </Button>
                             </div>
                           ) : (
-                            `Cantidad: ${
-                              item.quantity
-                            } - Total: ${formatCurrency(item.total_per_item)}`
+                            `Cant: ${item.quantity} - ${formatCurrency(item.total_per_item)}`
                           )
                         }
+                        secondaryTypographyProps={{ fontSize: '0.75rem' }}
                       />
 
                       {editingRoundItem !== item.product_id && (
@@ -892,7 +896,7 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                           <Button
                             size="small"
                             onClick={() => setEditingRoundItem(item.product_id)}
-                            sx={{ minWidth: "auto", padding: "4px 8px" }}
+                            sx={{ minWidth: "auto", padding: "2px 4px", fontSize: '0.75rem' }}
                           >
                             ✏️
                           </Button>
@@ -900,7 +904,7 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                             size="small"
                             color="error"
                             onClick={() => deleteRoundItem(item.product_id)}
-                            sx={{ minWidth: "auto", padding: "4px 8px" }}
+                            sx={{ minWidth: "auto", padding: "2px 4px", fontSize: '0.75rem' }}
                           >
                             🗑️
                           </Button>
@@ -912,12 +916,12 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
               ))}
             </List>
 
-            <div className="mt-4">
+            <div className="mt-3">
               <Button
                 variant="contained"
                 onClick={() => addRound(round)}
                 fullWidth
-                size="large"
+                size="small"
               >
                 Agregar a la cuenta
               </Button>

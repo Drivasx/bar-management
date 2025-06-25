@@ -265,11 +265,16 @@ export const Accounts = () => {
   const openAccounts = accounts.filter((account) => account.status === "OPEN");
 
   return (
-    <main className="flex flex-col h-[850px] overflow-hidden m-10">
+    <main className="flex flex-col h-screen overflow-hidden px-4 py-2">
       {/* Header con botones - altura fija */}
-      <div className="flex justify-between items-center mb-4 flex-shrink-0">
+      <div className="flex justify-between items-center mb-2 flex-shrink-0">
         <div className="flex gap-2">
-          <Button variant="contained" color="primary" onClick={openDialog}>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={openDialog}
+            size="small"
+          >
             Crear nueva cuenta
           </Button>
           <Button 
@@ -277,11 +282,17 @@ export const Accounts = () => {
             color="secondary" 
             onClick={openCombineDialog}
             disabled={openAccounts.length < 2}
+            size="small"
           >
             Combinar cuentas
           </Button>
         </div>
-        <Button variant="contained" color="secondary" onClick={() => navigate("/reportes")}>
+        <Button 
+          variant="contained" 
+          color="secondary" 
+          onClick={() => navigate("/reportes")}
+          size="small"
+        >
           Reportes
         </Button>
       </div>
@@ -290,7 +301,20 @@ export const Accounts = () => {
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           <TabContext value={value}>
             <Box sx={{ borderBottom: 1, borderColor: "divider", flexShrink: 0 }}>
-              <TabList onChange={handleChange} aria-label="lab API tabs example">
+              <TabList 
+                onChange={handleChange} 
+                aria-label="lab API tabs example"
+                variant="scrollable"
+                scrollButtons="auto"
+                sx={{
+                  minHeight: '40px',
+                  '& .MuiTab-root': {
+                    minHeight: '40px',
+                    padding: '6px 12px',
+                    fontSize: '0.875rem'
+                  }
+                }}
+              >
                 {openAccounts.map((account) => (
                   <Tab
                     key={account.id}
@@ -310,7 +334,21 @@ export const Accounts = () => {
                   key={account.id} 
                   className="w-full h-full p-0" 
                   value={account.id}
-                  sx={{ height: '100%', overflow: 'auto', padding: '24px 0 0 0' }}
+                  sx={{ 
+                    height: '100%', 
+                    overflow: 'auto', 
+                    padding: '8px 0 0 0',
+                    '&::-webkit-scrollbar': {
+                      width: '6px'
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      background: '#f1f1f1'
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      background: '#c1c1c1',
+                      borderRadius: '3px'
+                    }
+                  }}
                 >
                   <AccountDetails
                     key={`${account.id}-${refreshKey}`}

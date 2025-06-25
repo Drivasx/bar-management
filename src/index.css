@@ -4,7 +4,114 @@
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+}
 
+/* Estilos para pantallas de 1366x768 */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Ajustes para componentes de Material-UI */
+.MuiTabPanel-root {
+  padding: 8px 0 !important;
+}
+
+.MuiTab-root {
+  min-height: 40px !important;
+  padding: 6px 12px !important;
+  font-size: 0.875rem !important;
+}
+
+.MuiTabs-root {
+  min-height: 40px !important;
+}
+
+.MuiButton-root {
+  font-size: 0.875rem !important;
+}
+
+.MuiButton-sizeSmall {
+  font-size: 0.75rem !important;
+  padding: 4px 8px !important;
+}
+
+.MuiTextField-root .MuiInputBase-input {
+  font-size: 0.875rem !important;
+}
+
+.MuiSelect-select {
+  font-size: 0.875rem !important;
+}
+
+.MuiMenuItem-root {
+  font-size: 0.875rem !important;
+}
+
+/* Scrollbar personalizado para mejor UX */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Media queries específicos para 1366x768 */
+@media (max-width: 1366px) and (max-height: 768px) {
+  .MuiTableCell-root {
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+  }
+  
+  .MuiButton-root {
+    font-size: 0.75rem !important;
+    padding: 4px 8px !important;
+  }
+  
+  h1 {
+    font-size: 1.5rem !important;
+  }
+  
+  h2 {
+    font-size: 1.25rem !important;
+  }
+  
+  h3 {
+    font-size: 1.125rem !important;
+  }
+}
+
+/* Ajustes adicionales para pantallas pequeñas */
+@media (max-height: 800px) {
+  .MuiDialog-paper {
+    max-height: 90vh !important;
+  }
+  
+  .MuiDialogContent-root {
+    padding: 12px !important;
+  }
+  
+  .MuiDialogActions-root {
+    padding: 8px 16px !important;
+  }
 }
 
 

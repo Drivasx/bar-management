@@ -1,0 +1,141 @@
+/* Estilos específicos para la aplicación de gestión de bar */
+
+/* Asegurar que la aplicación use todo el viewport */
+.app-container {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Optimización para pantallas 1366x768 */
+@media (max-width: 1366px) and (max-height: 768px) {
+  /* Reducir padding y margin en contenedores principales */
+  .main-container {
+    padding: 8px !important;
+    margin: 0 !important;
+  }
+  
+  /* Hacer elementos más compactos */
+  .form-section {
+    padding: 12px !important;
+    margin-bottom: 12px !important;
+  }
+  
+  /* Optimizar tablas */
+  .table-container {
+    font-size: 0.8rem;
+  }
+  
+  /* Botones más pequeños */
+  .action-buttons {
+    gap: 8px !important;
+  }
+  
+  /* Headers más compactos */
+  .page-header {
+    margin-bottom: 16px !important;
+  }
+  
+  .page-title {
+    font-size: 1.5rem !important;
+    margin-bottom: 8px !important;
+  }
+  
+  /* Panel de ronda más compacto */
+  .round-panel {
+    width: 280px !important;
+    padding: 12px !important;
+  }
+  
+  /* Formularios más compactos */
+  .form-controls {
+    gap: 12px !important;
+  }
+  
+  /* Filtros de reportes más compactos */
+  .report-filters {
+    padding: 12px !important;
+    gap: 12px !important;
+  }
+}
+
+/* Ajustes para pantallas muy pequeñas en altura */
+@media (max-height: 800px) {
+  .dialog-content {
+    max-height: 70vh !important;
+    overflow-y: auto !important;
+  }
+  
+  .table-wrapper {
+    max-height: calc(100vh - 200px) !important;
+  }
+}
+
+/* Mejoras en la interfaz */
+.compact-button {
+  padding: 4px 8px !important;
+  font-size: 0.75rem !important;
+  min-width: auto !important;
+}
+
+.compact-input {
+  padding: 6px 8px !important;
+  font-size: 0.875rem !important;
+}
+
+.compact-select {
+  min-height: 36px !important;
+}
+
+/* Estados de hover más sutiles para pantallas pequeñas */
+@media (max-width: 1366px) {
+  .hover-effect:hover {
+    transform: none !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+  }
+}
+
+/* Scrollbar styling para mejor UX en espacios reducidos */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Optimizaciones de texto para mejor legibilidad en pantallas pequeñas */
+@media (max-width: 1366px) and (max-height: 768px) {
+  .text-optimization {
+    line-height: 1.3 !important;
+    letter-spacing: 0.01em !important;
+  }
+  
+  .currency-display {
+    font-weight: 600 !important;
+    color: #2563eb !important;
+  }
+  
+  .status-badge {
+    padding: 2px 6px !important;
+    font-size: 0.75rem !important;
+    border-radius: 3px !important;
+  }
+}

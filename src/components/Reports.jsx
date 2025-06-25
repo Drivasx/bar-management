@@ -269,28 +269,32 @@ export const Reports = () => {
   };
 
   return (
-    <main className="flex flex-col h-[850px] overflow-hidden m-10">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-4xl font-bold text-left items-start">
+    <main className="flex flex-col h-screen overflow-hidden px-4 py-2">
+      <div className="flex justify-between items-center mb-3 flex-shrink-0">
+        <h1 className="text-2xl font-bold text-left items-start">
           Registro de cuentas
         </h1>
-        <Button variant="outlined" onClick={() => navigate("/")}>
+        <Button 
+          variant="outlined" 
+          onClick={() => navigate("/")}
+          size="small"
+        >
           Volver a las cuentas actuales
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-4 mb-6 p-4 bg-gray-50 rounded-lg flex-shrink-0">
-        <div className="flex-1 min-w-64">
+      <div className="flex flex-wrap gap-3 mb-3 p-3 bg-gray-50 rounded-lg flex-shrink-0">
+        <div className="flex-1 min-w-48">
           <input
             type="text"
             placeholder="Buscar por nombre de cliente"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border border-gray-300 rounded px-4 py-2 w-full"
+            className="border border-gray-300 rounded px-3 py-2 w-full text-sm"
           />
         </div>
 
-        <FormControl sx={{ minWidth: 200 }}>
+        <FormControl sx={{ minWidth: 180 }} size="small">
           <InputLabel>Período</InputLabel>
           <Select
             value={dateFilter}
@@ -311,37 +315,37 @@ export const Reports = () => {
         {dateFilter === "custom" && (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Fecha inicio
               </label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="border border-gray-300 rounded px-3 py-2"
+                className="border border-gray-300 rounded px-2 py-1 text-sm"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Fecha fin
               </label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="border border-gray-300 rounded px-3 py-2"
+                className="border border-gray-300 rounded px-2 py-1 text-sm"
               />
             </div>
           </>
         )}
       </div>
 
-      <div className="mb-4 p-4 bg-blue-50 rounded-lg flex-shrink-0">
+      <div className="mb-3 p-3 bg-blue-50 rounded-lg flex-shrink-0">
         <div className="flex justify-between items-center">
-          <span className="text-lg font-medium">
+          <span className="text-base font-medium">
             Mostrando {filteredAccounts.length} cuenta(s)
             {dateFilter !== "all" && (
-              <span className="text-gray-600 ml-2">
+              <span className="text-gray-600 ml-2 text-sm">
                 -{" "}
                 {dateFilter === "custom"
                   ? "Rango personalizado"
@@ -361,7 +365,7 @@ export const Reports = () => {
               </span>
             )}
           </span>
-          <span className="text-xl font-bold text-blue-600">
+          <span className="text-lg font-bold text-blue-600">
             Total: {formatCurrency(calculateTotal())}
           </span>
         </div>
@@ -374,39 +378,25 @@ export const Reports = () => {
           sx={{
             maxHeight: "100%",
             overflow: "auto",
+            '& .MuiTableCell-root': {
+              padding: '8px 12px',
+              fontSize: '0.875rem'
+            },
+            '& .MuiTableCell-head': {
+              fontWeight: 'bold',
+              backgroundColor: 'white',
+              fontSize: '0.875rem'
+            }
           }}
         >
-          <Table stickyHeader>
+          <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
-                <TableCell
-                  sx={{ fontWeight: "bold", backgroundColor: "white" }}
-                >
-                  A nombre de
-                </TableCell>
-                <TableCell
-                  sx={{ fontWeight: "bold", backgroundColor: "white" }}
-                >
-                  Fecha
-                </TableCell>
-                <TableCell
-                  sx={{ fontWeight: "bold", backgroundColor: "white" }}
-                  align="right"
-                >
-                  Estado
-                </TableCell>
-                <TableCell
-                  sx={{ fontWeight: "bold", backgroundColor: "white" }}
-                  align="right"
-                >
-                  Total
-                </TableCell>
-                <TableCell
-                  sx={{ fontWeight: "bold", backgroundColor: "white" }}
-                  align="center"
-                >
-                  Acciones
-                </TableCell>
+                <TableCell>A nombre de</TableCell>
+                <TableCell>Fecha</TableCell>
+                <TableCell align="right">Estado</TableCell>
+                <TableCell align="right">Total</TableCell>
+                <TableCell align="center">Acciones</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -462,6 +452,7 @@ export const Reports = () => {
                             color="secondary"
                             size="small"
                             onClick={() => seeDetails(account.id)}
+                            sx={{ fontSize: '0.75rem', px: 2 }}
                           >
                             Ver detalles
                           </Button>
