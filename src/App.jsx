@@ -6,6 +6,7 @@ import { Reports } from "./components/Reports";
 import { Login } from "./components/Login";
 import { UserHeader } from "./components/UserHeader";
 import { useAuth } from "./hooks/useAuth";
+import { SignOut } from "./components/SignOut";
 
 function App() {
   const { user, userRole, loading, signIn, signOut } = useAuth();
@@ -39,12 +40,15 @@ function App() {
   // Usuario autenticado - mostrar aplicación
   return (
     <div className="h-screen overflow-hidden flex flex-col">
-      <UserHeader user={user} userRole={userRole} onSignOut={signOut} />
+      {/* <UserHeader user={user} userRole={userRole} onSignOut={signOut} /> */}
       <div className="flex-1 overflow-hidden">
         <Routes>
           <Route path="/" element={<Accounts />} />
           <Route path="/reportes" element={<Reports />} />
         </Routes>
+      </div>
+      <div className="flex justify-end p-4 bg-gray-100">
+      <SignOut onSignOut={signOut}/>
       </div>
     </div>
   );
