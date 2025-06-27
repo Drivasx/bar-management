@@ -538,8 +538,8 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
   if (loading) return <div>Cargando detalles de la cuenta...</div>;
 
   return (
-    <div className="flex gap-4 h-full">
-      <div className="flex-1 flex flex-col h-full">
+    <div className="flex gap-4" style={{ height: 'calc(100vh - 120px)' }}>
+      <div className="flex-1 flex flex-col">
         <h2 className="text-lg font-bold flex-shrink-0 mb-2">
           Detalles de la Cuenta
         </h2>
@@ -674,12 +674,12 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
         </DialogActions>
       </Dialog>
 
-        <div className="flex-1 overflow-hidden mb-3">
+        <div className="flex-1 overflow-hidden mb-3" style={{ height: 'calc(100vh - 420px)' }}>
           <TableContainer
-            className="w-full h-full"
+            className="w-full"
             component={Paper}
             sx={{
-              maxHeight: "100%",
+              height: '100%',
               overflow: "auto",
               '& .MuiTableCell-root': {
                 padding: '8px 12px',
@@ -830,8 +830,17 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
           </TableContainer>
         </div>
 
-        <div className="flex justify-between flex-shrink-0 gap-2">
-
+        {/* Botones de acción - Altura fija y visible */}
+        <div 
+          className="flex justify-between gap-2 p-3 border-t bg-white"
+          style={{ 
+            height: '70px',
+            minHeight: '70px',
+            flexShrink: 0,
+            borderTop: '2px solid #e5e7eb',
+            boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.1)'
+          }}
+        >
           <Button
             variant="contained"
             color="error"
@@ -853,9 +862,10 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
             )}
             <Button
               variant="contained"
-              disabled={productsToRound.length === 0 || isRoundSaved}
+              disabled={productsToRound.length === 0 || isRoundSaved || hasPayments}
               onClick={registerRound}
               size="small"
+              title={hasPayments ? "No se pueden crear rondas en cuentas con abonos" : ""}
             >
               Registrar ronda
             </Button>
@@ -974,6 +984,7 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
               </Button>
             </div>
           </div>
+            
         )}
       </div>
     </div>
