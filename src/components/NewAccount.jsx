@@ -90,22 +90,25 @@ export const NewAccount = ({ onClientSelected }) => {
             <Select
               labelId="demo-simple-select-label"
               id="demo-simple-select"
-              value={name}
+              value={selectedClientId || ""}
               label="Nombre"
               onChange={(e) => {
-                onInputChange(e);
+                const clientId = e.target.value;
+                const selectedClient = clients.find(client => client.id === clientId);
                 
-                const selectedClient = clients.find(client => client.name === e.target.value);
                 if (selectedClient) {
-                  setSelectedClientId(selectedClient.id);
+                  setSelectedClientId(clientId);
+                  // Actualizar el formulario con el nombre del cliente seleccionado
+                  onInputChange({ target: { name: 'name', value: selectedClient.name } });
+                  
                   if (onClientSelected) {
-                    onClientSelected(selectedClient.id);
+                    onClientSelected(clientId);
                   }
                 }
               }}
             >
               {clients.map((client) => (
-                <MenuItem key={client.id} value={client.name}>
+                <MenuItem key={client.id} value={client.id}>
                   {client.name}
                 </MenuItem>
               ))}

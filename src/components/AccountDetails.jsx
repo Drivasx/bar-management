@@ -40,6 +40,8 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
   const [round, setRound] = useState([]);
   const [editingRoundItem, setEditingRoundItem] = useState(null);
   const [open, setOpen] = useState(false);
+  const [accountInfo, setAccountInfo] = useState(null);
+  const [hasPayments, setHasPayments] = useState(false);
 
   const initialForm = {
     name: "",
@@ -53,6 +55,26 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
 
   useEffect(() => {
     if (!accountId) return;
+
+    const fetchAccountInfo = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("Account")
+          .select("*")
+          .eq("id", accountId)
+          .single();
+
+        if (error) {
+          console.error("Error fetching account info:", error);
+        } else {
+          setAccountInfo(data);
+          // Verificar si la cuenta está bloqueada por abonos
+          setHasPayments(data?.status === "BLOCKED");
+        }
+      } catch (e) {
+        console.error("Exception in fetchAccountInfo:", e);
+      }
+    };
 
     const fetchAccountDetails = async () => {
       try {
@@ -113,6 +135,7 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
       }
     };
 
+    fetchAccountInfo();
     fetchAccountDetails();
     fetchProducts();
   }, [accountId]);
@@ -273,23 +296,35 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
 
   const closeAccount = async (accountId) => {
     try {
-      const { error } = await supabase
+      const now = new Date();
+
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      
+      const localTimestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      
+      const { data, error } = await supabase
         .from("Account")
         .update({
           status: "CLOSED",
-          close_date: new Date().toISOString(),
+          close_date: localTimestamp,
           total_amount: totalAmount,
         })
-        .eq("id", accountId);
+        .eq("id", accountId)
+        .select();
+        
+      
       if (error) {
         console.error("Error closing account:", error);
         alert("Error al cerrar la cuenta: " + error.message);
       } else {
-        console.log("Account closed successfully");
         setAccounts((prevAccounts) =>
           prevAccounts.filter((account) => account.id !== accountId)
         );
-        setValue(5); 
       }
     } catch (e) {
       console.error("Exception in closeAccount:", e);
@@ -315,7 +350,6 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
         Product: product.Product,
       }));
 
-      console.log("Ronda registrada con éxito");
       setRound(roundData);
       setIsRoundSaved(true);
       saveRoundToStorage(roundData, true);
@@ -500,6 +534,7 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
     setOpen(false);
   };
 
+
   if (loading) return <div>Cargando detalles de la cuenta...</div>;
 
   return (
@@ -508,6 +543,13 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
         <h2 className="text-lg font-bold flex-shrink-0 mb-2">
           Detalles de la Cuenta
         </h2>
+
+        {/* Mensaje de información sobre abonos */}
+        {hasPayments && (
+          <div className="mb-3 p-3 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded flex-shrink-0">
+            <strong>⚠️ Cuenta con abonos:</strong> No se pueden agregar, eliminar productos o crear rondas en cuentas que han recibido abonos para mantener la integridad de los pagos.
+          </div>
+        )}
 
         {/* Formulario - altura fija optimizada */}
         <div className="p-3 border rounded-lg bg-gray-50 flex-shrink-0 mb-3">
@@ -550,8 +592,9 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
               <Button
                 variant="contained"
                 onClick={addProductToAccount}
-                disabled={!selectedProduct || quantity <= 0}
+                disabled={!selectedProduct || quantity <= 0 || hasPayments}
                 size="small"
+                title={hasPayments ? "No se pueden agregar productos a una cuenta con abonos" : ""}
               >
                 Agregar
               </Button>
@@ -667,8 +710,6 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                         } else {
                           setProductsToRound([]);
                         }
-                        console.log("Todos seleccionados:", isChecked);
-                        console.log("Detalles actualizados:", updatedDetails);
                       }}
                     />
                     &nbsp;Todos
@@ -738,8 +779,8 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                       <TableCell align="right">
                         {formatCurrency(detail.total_per_item)}
                       </TableCell>
-                      <TableCell align="center">
-                        <div className="flex gap-1">
+                      <TableCell align="right">
+                        <div className="flex gap-1 items-center justify-center">
                           <Button
                             variant="outlined"
                             color="error"
@@ -748,6 +789,8 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                               removeProductFromAccount(detail.product_id)
                             }
                             sx={{ minWidth: 'auto', px: 1, fontSize: '0.75rem' }}
+                            disabled={hasPayments}
+                            title={hasPayments ? "No se pueden eliminar productos de una cuenta con abonos" : ""}
                           >
                             Eliminar
                           </Button>
@@ -756,6 +799,8 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                             size="small"
                             onClick={() => addItemToRound(detail)}
                             sx={{ minWidth: 'auto', px: 1, fontSize: '0.75rem' }}
+                            disabled={hasPayments}
+                            title={hasPayments ? "No se pueden agregar productos a rondas en cuentas con abonos" : ""}
                           >
                             Ronda
                           </Button>
@@ -785,16 +830,17 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
           </TableContainer>
         </div>
 
-        {/* Botones inferiores - altura fija, siempre visibles */}
         <div className="flex justify-between flex-shrink-0 gap-2">
+
           <Button
             variant="contained"
             color="error"
             onClick={() => closeAccount(accountId)}
             size="small"
-          >
+            >
             Cerrar cuenta
           </Button>
+
           <div className="flex gap-2">
             {isRoundSaved && (
               <Button 
@@ -817,7 +863,6 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
         </div>
       </div>
 
-      {/* Panel de ronda - más compacto */}
       <div className="w-72 flex-shrink-0">
         {isRoundSaved && (
           <div className="bg-green-100 text-green-800 p-3 rounded-lg shadow-lg h-fit">
@@ -922,6 +967,8 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                 onClick={() => addRound(round)}
                 fullWidth
                 size="small"
+                disabled={hasPayments}
+                title={hasPayments ? "No se pueden agregar productos a una cuenta con abonos" : ""}
               >
                 Agregar a la cuenta
               </Button>

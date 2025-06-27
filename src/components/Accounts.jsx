@@ -298,69 +298,90 @@ export const Accounts = () => {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          <TabContext value={value}>
-            <Box sx={{ borderBottom: 1, borderColor: "divider", flexShrink: 0 }}>
-              <TabList 
-                onChange={handleChange} 
-                aria-label="lab API tabs example"
-                variant="scrollable"
-                scrollButtons="auto"
-                sx={{
-                  minHeight: '40px',
-                  '& .MuiTab-root': {
-                    minHeight: '40px',
-                    padding: '6px 12px',
-                    fontSize: '0.875rem'
-                  }
-                }}
+        {openAccounts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full bg-gray-50 rounded-lg">
+            <div className="text-center p-8">
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                No hay cuentas abiertas
+              </h3>
+              <p className="text-gray-500 mb-4">
+                Crea una nueva cuenta para comenzar a registrar productos
+              </p>
+              <Button 
+                variant="contained" 
+                color="primary" 
+                onClick={openDialog}
+                size="large"
               >
-                {openAccounts.map((account) => (
-                  <Tab
-                    key={account.id}
-                    label={
-                      <div className="flex items-center gap-2">
-                        <ClientName clientId={account.client_id} />
-                      </div>
-                    }
-                    value={account.id}
-                  />
-                ))}
-              </TabList>
-            </Box>
-            <Box sx={{ flex: 1, overflow: 'hidden' }}>
-              {accounts.map((account) => (
-                <TabPanel 
-                  key={account.id} 
-                  className="w-full h-full p-0" 
-                  value={account.id}
-                  sx={{ 
-                    height: '100%', 
-                    overflow: 'auto', 
-                    padding: '8px 0 0 0',
-                    '&::-webkit-scrollbar': {
-                      width: '6px'
-                    },
-                    '&::-webkit-scrollbar-track': {
-                      background: '#f1f1f1'
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                      background: '#c1c1c1',
-                      borderRadius: '3px'
+                Crear nueva cuenta
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <TabContext value={value}>
+              <Box sx={{ borderBottom: 1, borderColor: "divider", flexShrink: 0 }}>
+                <TabList 
+                  onChange={handleChange} 
+                  aria-label="lab API tabs example"
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  sx={{
+                    minHeight: '40px',
+                    '& .MuiTab-root': {
+                      minHeight: '40px',
+                      padding: '6px 12px',
+                      fontSize: '0.875rem'
                     }
                   }}
                 >
-                  <AccountDetails
-                    key={`${account.id}-${refreshKey}`}
-                    accountId={account.id}
-                    setAccounts={setAccounts}
-                    setValue={setValue}
-                  />
-                </TabPanel>
-              ))}
-            </Box>
-          </TabContext>
-        </Box>
+                  {openAccounts.map((account) => (
+                    <Tab
+                      key={account.id}
+                      label={
+                        <div className="flex items-center gap-2">
+                          <ClientName clientId={account.client_id} />
+                        </div>
+                      }
+                      value={account.id}
+                    />
+                  ))}
+                </TabList>
+              </Box>
+              <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                {accounts.map((account) => (
+                  <TabPanel 
+                    key={account.id} 
+                    className="w-full h-full p-0" 
+                    value={account.id}
+                    sx={{ 
+                      height: '100%', 
+                      overflow: 'auto', 
+                      padding: '8px 0 0 0',
+                      '&::-webkit-scrollbar': {
+                        width: '6px'
+                      },
+                      '&::-webkit-scrollbar-track': {
+                        background: '#f1f1f1'
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        background: '#c1c1c1',
+                        borderRadius: '3px'
+                      }
+                    }}
+                  >
+                    <AccountDetails
+                      key={`${account.id}-${refreshKey}`}
+                      accountId={account.id}
+                      setAccounts={setAccounts}
+                      setValue={setValue}
+                    />
+                  </TabPanel>
+                ))}
+              </Box>
+            </TabContext>
+          </Box>
+        )}
       </div>
 
       <Dialog

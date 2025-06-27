@@ -35,6 +35,9 @@ export const Reports = () => {
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [accountDetails, setAccountDetails] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [openAbonoModal, setOpenAbonoModal] = useState(false);
+  const [montoAbono, setMontoAbono] = useState("");
+  const [abonoMessages, setAbonoMessages] = useState({}); // Objeto para mantener mensajes por cuenta
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -95,64 +98,54 @@ export const Reports = () => {
 
   const getDateRange = (filter) => {
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Crear fechas en zona horaria local
+    const getLocalDate = (year, month, day, hour = 0, minute = 0, second = 0, ms = 0) => {
+      return new Date(year, month, day, hour, minute, second, ms);
+    };
 
     switch (filter) {
       case "today":
-        return {
-          start: today,
-          end: new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1),
-        };
+        const startOfToday = getLocalDate(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        const endOfToday = getLocalDate(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        return { start: startOfToday, end: endOfToday };
+        
       case "yesterday":
-        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-        return {
-          start: yesterday,
-          end: new Date(yesterday.getTime() + 24 * 60 * 60 * 1000 - 1),
-        };
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const startOfYesterday = getLocalDate(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0);
+        const endOfYesterday = getLocalDate(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0);
+        return { start: startOfYesterday, end: endOfYesterday };
+        
       case "thisWeek":
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay());
-        return {
-          start: startOfWeek,
-          end: now,
-        };
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        const startOfWeekLocal = getLocalDate(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate(), 0, 0, 0, 0);
+        return { start: startOfWeekLocal, end: now };
+        
       case "lastWeek":
-        const startOfLastWeek = new Date(today);
-        startOfLastWeek.setDate(today.getDate() - today.getDay() - 7);
+        const startOfLastWeek = new Date(now);
+        startOfLastWeek.setDate(now.getDate() - now.getDay() - 7);
         const endOfLastWeek = new Date(startOfLastWeek);
         endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
-        endOfLastWeek.setHours(23, 59, 59, 999);
-        return {
-          start: startOfLastWeek,
-          end: endOfLastWeek,
-        };
+        const startOfLastWeekLocal = getLocalDate(startOfLastWeek.getFullYear(), startOfLastWeek.getMonth(), startOfLastWeek.getDate(), 0, 0, 0, 0);
+        const endOfLastWeekLocal = getLocalDate(endOfLastWeek.getFullYear(), endOfLastWeek.getMonth(), endOfLastWeek.getDate(), 23, 59, 59, 999);
+        return { start: startOfLastWeekLocal, end: endOfLastWeekLocal };
+        
       case "thisMonth":
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        return {
-          start: startOfMonth,
-          end: now,
-        };
+        const startOfMonth = getLocalDate(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        return { start: startOfMonth, end: now };
+        
       case "lastMonth":
-        const startOfLastMonth = new Date(
-          today.getFullYear(),
-          today.getMonth() - 1,
-          1
-        );
-        const endOfLastMonth = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          0
-        );
-        endOfLastMonth.setHours(23, 59, 59, 999);
-        return {
-          start: startOfLastMonth,
-          end: endOfLastMonth,
-        };
+        const startOfLastMonth = getLocalDate(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+        const endOfLastMonth = getLocalDate(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+        return { start: startOfLastMonth, end: endOfLastMonth };
+        
       case "custom":
-        return {
-          start: startDate ? new Date(startDate) : null,
-          end: endDate ? new Date(endDate + "T23:59:59") : null,
-        };
+        const customStart = startDate ? new Date(startDate + "T00:00:00.000") : null;
+        const customEnd = endDate ? new Date(endDate + "T23:59:59.999") : null;
+        return { start: customStart, end: customEnd };
+        
       default:
         return { start: null, end: null };
     }
@@ -171,10 +164,28 @@ export const Reports = () => {
     if (dateFilter !== "all") {
       const { start, end } = getDateRange(dateFilter);
 
+      console.log("Filtro de fecha:", dateFilter);
+      console.log("Rango de fechas:", { start, end });
+
       if (start && end) {
         filtered = filtered.filter((account) => {
+          // Convertir la fecha de la cuenta a fecha local (solo fecha, sin hora)
           const accountDate = new Date(account.created_at);
-          return accountDate >= start && accountDate <= end;
+          const accountLocalDate = new Date(accountDate.getFullYear(), accountDate.getMonth(), accountDate.getDate());
+          const isInRange = accountLocalDate >= start && accountLocalDate <= end;
+          
+          if (dateFilter === "today") {
+            console.log("Cuenta:", account.id);
+            console.log("Fecha original:", account.created_at);
+            console.log("Fecha parseada:", accountDate);
+            console.log("Fecha local (solo día):", accountLocalDate);
+            console.log("Rango inicio:", start);
+            console.log("Rango fin:", end);
+            console.log("En rango:", isInRange);
+            console.log("---");
+          }
+          
+          return isInRange;
         });
       }
     }
@@ -197,10 +208,16 @@ export const Reports = () => {
     getAccounts();
   }, []);
 
-  const calculateTotal = () => {
-    return filteredAccounts.reduce((total, account) => {
-      return total + (account.total_amount || 0);
-    }, 0);
+  const calculateTotals = () => {
+    const totalPagado = filteredAccounts
+      .filter(account => account.status === "CLOSED")
+      .reduce((total, account) => total + (account.total_amount || 0), 0);
+    
+    const totalPendiente = filteredAccounts
+      .filter(account => account.status === "OPEN" || account.status === "BLOCKED")
+      .reduce((total, account) => total + (account.total_amount || 0), 0);
+    
+    return { totalPagado, totalPendiente };
   };
 
   const handleDateFilterChange = (value) => {
@@ -215,6 +232,11 @@ export const Reports = () => {
     setOpen(false);
     setSelectedAccountId(null);
     setAccountDetails([]);
+  };
+
+  const handleCloseAbonoModal = () => {
+    setOpenAbonoModal(false);
+    setMontoAbono("");
   };
 
   const seeDetails = async (accountId) => {
@@ -233,14 +255,27 @@ export const Reports = () => {
         0
       );
 
-      const { error } = await supabase
+      const now = new Date();
+
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      
+      const localTimestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+
+      const { data, error } = await supabase
         .from("Account")
         .update({
           status: "CLOSED",
-          close_date: new Date().toISOString(),
+          close_date: localTimestamp,
           total_amount: totalAmount,
         })
-        .eq("id", selectedAccountId);
+        .eq("id", selectedAccountId)
+        .select();
+        
 
       if (error) {
         console.error("Error closing account:", error);
@@ -253,7 +288,7 @@ export const Reports = () => {
             ? {
                 ...acc,
                 status: "CLOSED",
-                close_date: new Date().toISOString(),
+                close_date: localTimestamp,
                 total_amount: totalAmount,
               }
             : acc
@@ -265,6 +300,126 @@ export const Reports = () => {
     } catch (e) {
       console.error("Exception closing account:", e);
       alert("Error inesperado al cerrar la cuenta");
+    }
+  };
+
+  function conviertefecha(fecharecibidatexto){
+    if (!fecharecibidatexto || fecharecibidatexto === "N/A") {
+      return "N/A";
+    }
+    
+    try {
+      let fecha;
+      
+      if (fecharecibidatexto.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        fecha = new Date(fecharecibidatexto + "T12:00:00");
+        const dia = fecha.getDate().toString().padStart(2, '0');
+        const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+        const anio = fecha.getFullYear();
+        return `${dia}/${mes}/${anio}`;
+      } else if (fecharecibidatexto.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)) {
+        const [datePart, timePart] = fecharecibidatexto.split(' ');
+        const [year, month, day] = datePart.split('-');
+        const [hour, minute, second] = timePart.split(':');
+        
+        fecha = new Date(year, month - 1, day, hour, minute, second);
+      } else {
+        fecha = new Date(fecharecibidatexto);
+      }
+      
+      const anio = fecha.getFullYear();
+      const mes = (fecha.getMonth() + 1).toString().padStart(2, '0');
+      const dia = fecha.getDate().toString().padStart(2, '0');
+      const hora = fecha.getHours().toString().padStart(2, '0');
+      const minutos = fecha.getMinutes().toString().padStart(2, '0');
+      
+      return `${dia}/${mes}/${anio} ${hora}:${minutos}`;
+    } catch (error) {
+      console.error("Error convirtiendo fecha:", fecharecibidatexto, error);
+      return "Fecha inválida";
+    }
+  }
+
+  const abonarDinero = async () => {
+    if (!selectedAccountId || !montoAbono || isNaN(montoAbono) || parseFloat(montoAbono) <= 0) {
+      alert("Por favor ingrese un monto válido");
+      return;
+    }
+
+    const dineroAAbonar = parseFloat(montoAbono);
+    const account = accounts.find((acc) => acc.id === selectedAccountId);
+    const nuevoTotal = (account.total_amount || 0) - dineroAAbonar;
+
+    // No permitir que el total sea negativo
+    if (nuevoTotal < 0) {
+      alert("El monto a abonar no puede ser mayor al total de la cuenta");
+      return;
+    }
+
+    // Determinar el nuevo estado basado en el total restante
+    const newStatus = nuevoTotal === 0 ? "CLOSED" : "BLOCKED";
+    
+    // Si se está cerrando la cuenta, necesitamos la fecha de cierre
+    const updateData = { 
+      total_amount: newStatus === "CLOSED" ? account.total_amount + dineroAAbonar : nuevoTotal, // Mostrar total original si se cierra
+      status: newStatus
+    };
+    
+    if (newStatus === "CLOSED") {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      
+      updateData.close_date = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    const { data, error } = await supabase
+      .from("Account")
+      .update(updateData)
+      .eq("id", selectedAccountId)
+      .select();
+
+    if (error) {
+      console.error("Error abonando dinero:", error);
+      alert("Error al abonar dinero a la cuenta");
+    } else {
+      
+      const updatedAccounts = accounts.map((acc) =>
+        acc.id === selectedAccountId
+          ? { 
+              ...acc, 
+              total_amount: updateData.total_amount, 
+              status: newStatus,
+              ...(newStatus === "CLOSED" && { close_date: updateData.close_date })
+            }
+          : acc
+      );
+      setAccounts(updatedAccounts);
+
+      let newMessage;
+      if (newStatus === "CLOSED") {
+        newMessage = `Se abonó el resto de la cuenta (${formatCurrency(dineroAAbonar)}). La cuenta ha sido cerrada automáticamente. Total pagado: ${formatCurrency(updateData.total_amount)}`;
+      } else {
+        newMessage = `Se abonaron ${formatCurrency(dineroAAbonar)} a esta cuenta. Nuevo total: ${formatCurrency(nuevoTotal)}`;
+      }
+      
+      setAbonoMessages(prev => ({
+        ...prev,
+        [selectedAccountId]: newMessage
+      }));
+      
+      // Cerrar el modal de abono
+      handleCloseAbonoModal();
+      
+      if (newStatus === "CLOSED") {
+        alert("Cuenta pagada completamente y cerrada automáticamente");
+      } else {
+        alert("Dinero abonado con éxito");
+      }
     }
   };
 
@@ -365,9 +520,19 @@ export const Reports = () => {
               </span>
             )}
           </span>
-          <span className="text-lg font-bold text-blue-600">
-            Total: {formatCurrency(calculateTotal())}
-          </span>
+          <div className="flex gap-4 items-center">
+            <div className="text-right">
+              <div className="text-sm text-green-600 font-medium">
+                Pagado: {formatCurrency(calculateTotals().totalPagado)}
+              </div>
+              <div className="text-sm text-orange-600 font-medium">
+                Pendiente: {formatCurrency(calculateTotals().totalPendiente)}
+              </div>
+            </div>
+            <div className="text-lg font-bold text-blue-600">
+              Total: {formatCurrency(calculateTotals().totalPagado + calculateTotals().totalPendiente)}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -393,7 +558,8 @@ export const Reports = () => {
             <TableHead>
               <TableRow>
                 <TableCell>A nombre de</TableCell>
-                <TableCell>Fecha</TableCell>
+                <TableCell>Fecha Apertura</TableCell>
+                <TableCell>Fecha Cierre</TableCell>
                 <TableCell align="right">Estado</TableCell>
                 <TableCell align="right">Total</TableCell>
                 <TableCell align="center">Acciones</TableCell>
@@ -401,14 +567,14 @@ export const Reports = () => {
             </TableHead>
             <TableBody>
               {accounts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} align="center">
+                <TableRow >
+                  <TableCell colSpan={6} align="center">
                     No hay cuentas registradas
                   </TableCell>
                 </TableRow>
               ) : filteredAccounts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} align="center">
+                  <TableCell colSpan={6} align="center">
                     No se encontraron cuentas con los filtros aplicados
                   </TableCell>
                 </TableRow>
@@ -421,25 +587,23 @@ export const Reports = () => {
                           <ClientName clientId={account.client_id} />
                         </TableCell>
                         <TableCell>
-                          {new Date(account.created_at).toLocaleDateString(
-                            "es-ES",
-                            {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
+                          {conviertefecha(account.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          {conviertefecha(account.close_date)}
                         </TableCell>
                         <TableCell align="right">
                           {account.status === "OPEN" ? (
                             <span className="text-green-600 font-semibold">
                               Abierta
                             </span>
+                          ) : account.status === "BLOCKED" ? (
+                            <span className="text-yellow-600 font-semibold">
+                              Abonada
+                            </span>
                           ) : (
                             <span className="text-red-600 font-semibold">
-                              Cancelada
+                              Cerrada
                             </span>
                           )}
                         </TableCell>
@@ -489,6 +653,16 @@ export const Reports = () => {
           )}
         </DialogTitle>
         <DialogContent>
+          {selectedAccountId && abonoMessages[selectedAccountId] && (
+            <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded">
+              {abonoMessages[selectedAccountId]}
+            </div>
+          )}
+          {selectedAccountId && accounts.find((acc) => acc.id === selectedAccountId)?.status === "BLOCKED" && (
+            <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded">
+              <strong>⚠️ Cuenta con abonos:</strong> Esta cuenta ha recibido abonos y está bloqueada para modificaciones.
+            </div>
+          )}
           {loadingDetails ? (
             <div className="flex justify-center items-center py-8">
               <p>Cargando detalles de la cuenta...</p>
@@ -548,10 +722,7 @@ export const Reports = () => {
                         sx={{ fontWeight: "bold", fontSize: "1.1rem" }}
                       >
                         {formatCurrency(
-                          accountDetails.reduce(
-                            (sum, detail) => sum + (detail.total_per_item || 0),
-                            0
-                          )
+                          accounts.find((acc) => acc.id === selectedAccountId)?.total_amount || 0
                         )}
                       </TableCell>
                     </TableRow>
@@ -562,19 +733,111 @@ export const Reports = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleClose}>Cancelar</Button>
-          {selectedAccountId &&
-            accounts.find((acc) => acc.id === selectedAccountId)?.status ===
-              "OPEN" && (
+          <Button onClick={handleClose}>Cerrar</Button>
+          {selectedAccountId && (
+            <>
+              {accounts.find((acc) => acc.id === selectedAccountId)?.status === "OPEN" && (
+                <>
+                  <Button
+                    onClick={() => setOpenAbonoModal(true)}
+                    variant="contained"
+                    color="primary"
+                    disabled={loadingDetails || accountDetails.length === 0}
+                  >
+                    Abonar Dinero
+                  </Button>
+                  <Button
+                    onClick={closeAccountFromModal}
+                    variant="contained"
+                    color="error"
+                    disabled={loadingDetails || accountDetails.length === 0}
+                  >
+                    Cerrar Cuenta
+                  </Button>
+                </>
+              )}
+              {accounts.find((acc) => acc.id === selectedAccountId)?.status === "BLOCKED" && (
+                <Button
+                  onClick={() => setOpenAbonoModal(true)}
+                  variant="contained"
+                  color="primary"
+                  disabled={loadingDetails}
+                >
+                  Abonar Más Dinero
+                </Button>
+              )}
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal para abonar dinero */}
+      <Dialog
+        open={openAbonoModal}
+        onClose={handleCloseAbonoModal}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Abonar Dinero a la Cuenta</DialogTitle>
+        <DialogContent>
+          <div className="mt-4">
+            <p className="mb-4 text-gray-600">
+              Total actual de la cuenta: {" "}
+              <span className="font-bold">
+                {formatCurrency(
+                  accounts.find((acc) => acc.id === selectedAccountId)?.total_amount || 0
+                )}
+              </span>
+            </p>
+            
+            {/* Botón para abonar el total completo */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700 mb-3">
+                <strong>Opción rápida:</strong> Abonar el total completo y cerrar la cuenta
+              </p>
               <Button
-                onClick={closeAccountFromModal}
                 variant="contained"
-                color="error"
-                disabled={loadingDetails}
+                color="success"
+                onClick={() => {
+                  const totalActual = accounts.find((acc) => acc.id === selectedAccountId)?.total_amount || 0;
+                  setMontoAbono(totalActual.toString());
+                }}
+                fullWidth
+                size="small"
               >
-                Cerrar Cuenta
+                Abonar Total Completo ({formatCurrency(
+                  accounts.find((acc) => acc.id === selectedAccountId)?.total_amount || 0
+                )})
               </Button>
-            )}
+            </div>
+
+            <div className="border-t border-gray-200 pt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                O ingrese un monto personalizado:
+              </label>
+              <input
+                type="number"
+                value={montoAbono}
+                onChange={(e) => setMontoAbono(e.target.value)}
+                placeholder="Ingrese el monto"
+                className="w-full border border-gray-300 rounded px-3 py-2"
+                min="0"
+                step="0.01"
+                autoFocus
+              />
+            </div>
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAbonoModal}>Cancelar</Button>
+          <Button
+            onClick={abonarDinero}
+            variant="contained"
+            color="primary"
+            disabled={!montoAbono || parseFloat(montoAbono) <= 0}
+          >
+            Abonar {montoAbono && parseFloat(montoAbono) > 0 ? formatCurrency(parseFloat(montoAbono)) : ''}
+          </Button>
         </DialogActions>
       </Dialog>
     </main>
