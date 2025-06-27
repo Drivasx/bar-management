@@ -107,6 +107,7 @@ export const useAuth = () => {
     })
     return { data, error }
   }
+  
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
