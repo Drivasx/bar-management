@@ -26,7 +26,7 @@ import ListItemText from "@mui/material/ListItemText";
 import { formatCurrency } from "../helpers/CurrencyFormatHelper";
 import { useForm } from "../hooks/useForm";
 
-export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
+export const AccountDetails = ({ accountId, setAccounts }) => {
   const [accountDetails, setAccountDetails] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -538,8 +538,8 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
   if (loading) return <div>Cargando detalles de la cuenta...</div>;
 
   return (
-    <div className="flex gap-4" style={{ height: 'calc(100vh - 120px)' }}>
-      <div className="flex-1 flex flex-col">
+    <div className="flex gap-4" style={{ height: '600px' }}>
+      <div className="flex-1 flex flex-col h-full">
         <h2 className="text-lg font-bold flex-shrink-0 mb-2">
           Detalles de la Cuenta
         </h2>
@@ -674,7 +674,7 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
         </DialogActions>
       </Dialog>
 
-        <div className="flex-1 overflow-hidden mb-3" style={{ height: 'calc(100vh - 420px)' }}>
+        <div style={{ height: '400px' }} className="overflow-hidden mb-3">
           <TableContainer
             className="w-full"
             component={Paper}
@@ -809,7 +809,7 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
                     </TableRow>
                   ))
                 )}
-                <TableRow>
+                <TableRow sx={{position: 'sticky', bottom: 0, backgroundColor: 'white'}}>
                   <TableCell
                     colSpan={4}
                     align="right"
@@ -830,12 +830,12 @@ export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
           </TableContainer>
         </div>
 
-        {/* Botones de acción - Altura fija y visible */}
+        {/* Botones de acción - Siempre visibles */}
         <div 
-          className="flex justify-between gap-2 p-3 border-t bg-white"
+          className="flex justify-between gap-2 p-2 border-t bg-white mt-auto"
           style={{ 
-            height: '70px',
-            minHeight: '70px',
+            height: '50px',
+            minHeight: '50px',
             flexShrink: 0,
             borderTop: '2px solid #e5e7eb',
             boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.1)'
