@@ -538,9 +538,9 @@ export const AccountDetails = ({ accountId, setAccounts }) => {
   if (loading) return <div>Cargando detalles de la cuenta...</div>;
 
   return (
-    <div className="flex gap-4" style={{ height: '600px' }}>
+    <div className="flex gap-4" style={{ height: '500px' }}>
       <div className="flex-1 flex flex-col h-full">
-        <h2 className="text-lg font-bold flex-shrink-0 mb-2">
+        <h2 className="font-bold flex-shrink-0 mb-2">
           Detalles de la Cuenta
         </h2>
 
@@ -553,7 +553,7 @@ export const AccountDetails = ({ accountId, setAccounts }) => {
 
         {/* Formulario - altura fija optimizada */}
         <div className="p-3 border rounded-lg bg-gray-50 flex-shrink-0 mb-3">
-          <h3 className="text-base font-semibold mb-2">Agregar Producto</h3>
+          <h3 className="text-sm font-semibold mb-2">Agregar Producto</h3>
           <div className="flex items-end gap-3 justify-between">
             <div className="flex gap-3 items-end">
               <FormControl sx={{ minWidth: 200 }} size="small">
