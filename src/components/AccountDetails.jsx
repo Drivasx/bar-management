@@ -26,7 +26,7 @@ import ListItemText from "@mui/material/ListItemText";
 import { formatCurrency } from "../helpers/CurrencyFormatHelper";
 import { useForm } from "../hooks/useForm";
 
-export const AccountDetails = ({ accountId, setAccounts, setValue }) => {
+export const AccountDetails = ({ accountId, setAccounts }) => {
   const [accountDetails, setAccountDetails] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
