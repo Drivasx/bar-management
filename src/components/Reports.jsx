@@ -20,6 +20,7 @@ import {
   DialogActions,
 } from "@mui/material";
 import { ClientName } from "./Accounts";
+import { NewAccount } from "./NewAccount";
 import { useNavigate } from "react-router";
 import { formatCurrency } from "../helpers/CurrencyFormatHelper";
 
@@ -38,6 +39,9 @@ export const Reports = () => {
   const [openAbonoModal, setOpenAbonoModal] = useState(false);
   const [montoAbono, setMontoAbono] = useState("");
   const [abonoMessages, setAbonoMessages] = useState({}); // Objeto para mantener mensajes por cuenta
+  const [editAccountOpen, setEditAccountOpen] = useState(false);
+  const [accountToEdit, setAccountToEdit] = useState(null);
+  const [editClientId, setEditClientId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -237,6 +241,99 @@ export const Reports = () => {
   const handleCloseAbonoModal = () => {
     setOpenAbonoModal(false);
     setMontoAbono("");
+  };
+
+  const handleCloseEditAccount = () => {
+    setEditAccountOpen(false);
+    setAccountToEdit(null);
+    setEditClientId(null);
+  };
+
+  const openEditAccountDialog = (account) => {
+    setAccountToEdit(account);
+    setEditClientId(account.client_id);
+    setEditAccountOpen(true);
+  };
+
+  const deleteAccount = async (accountId, accountName) => {
+    if (!window.confirm(`¿Está seguro de que desea eliminar la cuenta de "${accountName}"? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    try {
+      // Primero eliminar los detalles de la cuenta
+      const { error: detailsError } = await supabase
+        .from("AccountDetail")
+        .delete()
+        .eq("account_id", accountId);
+
+      if (detailsError) {
+        console.error("Error deleting account details:", detailsError);
+        alert("Error al eliminar los detalles de la cuenta");
+        return;
+      }
+
+      // Luego eliminar la cuenta
+      const { error: accountError } = await supabase
+        .from("Account")
+        .delete()
+        .eq("id", accountId);
+
+      if (accountError) {
+        console.error("Error deleting account:", accountError);
+        alert("Error al eliminar la cuenta");
+        return;
+      }
+
+      alert("Cuenta eliminada exitosamente");
+      
+      // Actualizar la lista de cuentas
+      setAccounts(prevAccounts => prevAccounts.filter(acc => acc.id !== accountId));
+      
+      // Si había un modal abierto para esta cuenta, cerrarlo
+      if (selectedAccountId === accountId) {
+        handleClose();
+      }
+    } catch (e) {
+      console.error("Exception deleting account:", e);
+      alert("Error inesperado al eliminar la cuenta");
+    }
+  };
+
+  const editAccount = async () => {
+    if (!editClientId) {
+      alert("Por favor, seleccione un cliente");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("Account")
+        .update({ client_id: editClientId })
+        .eq("id", accountToEdit.id);
+
+      if (error) {
+        console.error("Error updating account:", error);
+        alert("Error al actualizar la cuenta");
+        return;
+      }
+
+      alert("Cuenta actualizada exitosamente");
+      
+      // Actualizar la lista de cuentas
+      setAccounts(prevAccounts => 
+        prevAccounts.map(acc => 
+          acc.id === accountToEdit.id 
+            ? { ...acc, client_id: editClientId }
+            : acc
+        )
+      );
+      
+      handleCloseEditAccount();
+    } catch (e) {
+      console.error("Exception updating account:", e);
+      alert("Error inesperado al actualizar la cuenta");
+    }
   };
 
   const seeDetails = async (accountId) => {
@@ -611,15 +708,35 @@ export const Reports = () => {
                           {formatCurrency(account.total_amount)}
                         </TableCell>
                         <TableCell align="center">
-                          <Button
-                            variant="outlined"
-                            color="secondary"
-                            size="small"
-                            onClick={() => seeDetails(account.id)}
-                            sx={{ fontSize: '0.75rem', px: 2 }}
-                          >
-                            Ver detalles
-                          </Button>
+                          <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                            <Button
+                              variant="outlined"
+                              color="secondary"
+                              size="small"
+                              onClick={() => seeDetails(account.id)}
+                              sx={{ fontSize: '0.75rem', px: 1 }}
+                            >
+                              Ver
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              color="primary"
+                              size="small"
+                              onClick={() => openEditAccountDialog(account)}
+                              sx={{ fontSize: '0.75rem', px: 1 }}
+                            >
+                              Editar
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              size="small"
+                              onClick={() => deleteAccount(account.id, clients[account.client_id] || 'Cliente desconocido')}
+                              sx={{ fontSize: '0.75rem', px: 1 }}
+                            >
+                              Eliminar
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     </>
@@ -837,6 +954,91 @@ export const Reports = () => {
             disabled={!montoAbono || parseFloat(montoAbono) <= 0}
           >
             Abonar {montoAbono && parseFloat(montoAbono) > 0 ? formatCurrency(parseFloat(montoAbono)) : ''}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Diálogo de edición de cuenta */}
+      <Dialog 
+        open={editAccountOpen} 
+        onClose={handleCloseEditAccount} 
+        maxWidth="sm" 
+        fullWidth
+      >
+        <DialogTitle>Editar Cuenta</DialogTitle>
+        <DialogContent>
+          {accountToEdit && (
+            <div style={{ paddingTop: '20px' }}>
+              <FormControl fullWidth>
+                <InputLabel>Cliente</InputLabel>
+                <Select
+                  value={editClientId || ""}
+                  label="Cliente"
+                  onChange={(e) => setEditClientId(e.target.value)}
+                >
+                  {Object.entries(clients).map(([clientId, clientName]) => (
+                    <MenuItem key={clientId} value={clientId}>
+                      {clientName}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              
+              <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                <p><strong>Fecha de apertura:</strong> {conviertefecha(accountToEdit.created_at)}</p>
+                <p><strong>Fecha de cierre:</strong> {conviertefecha(accountToEdit.close_date)}</p>
+                <p><strong>Estado:</strong> {
+                  accountToEdit.status === "OPEN" ? "Abierta" : 
+                  accountToEdit.status === "BLOCKED" ? "Abonada" : "Cerrada"
+                }</p>
+                <p><strong>Total:</strong> {formatCurrency(accountToEdit.total_amount)}</p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEditAccount}>Cancelar</Button>
+          <Button
+            onClick={async () => {
+              if (!editClientId) {
+                alert('Por favor seleccione un cliente');
+                return;
+              }
+              
+              try {
+                const { error } = await supabase
+                  .from("Account")
+                  .update({ client_id: editClientId })
+                  .eq("id", accountToEdit.id);
+
+                if (error) {
+                  console.error("Error updating account:", error);
+                  alert("Error al actualizar la cuenta");
+                  return;
+                }
+
+                alert("Cuenta actualizada exitosamente");
+                
+                // Actualizar la cuenta en la lista
+                setAccounts(prevAccounts => 
+                  prevAccounts.map(acc => 
+                    acc.id === accountToEdit.id 
+                      ? { ...acc, client_id: editClientId } 
+                      : acc
+                  )
+                );
+                
+                handleCloseEditAccount();
+              } catch (e) {
+                console.error("Exception updating account:", e);
+                alert("Error inesperado al actualizar la cuenta");
+              }
+            }}
+            variant="contained"
+            color="primary"
+            disabled={!editClientId}
+          >
+            Guardar Cambios
           </Button>
         </DialogActions>
       </Dialog>

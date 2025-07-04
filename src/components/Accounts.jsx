@@ -45,6 +45,9 @@ export const Accounts = () => {
   const [selectedAccountsToCombine, setSelectedAccountsToCombine] = useState([]);
   const [targetAccount, setTargetAccount] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [editAccountOpen, setEditAccountOpen] = useState(false);
+  const [accountToEdit, setAccountToEdit] = useState(null);
+  const [editClientId, setEditClientId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -106,6 +109,91 @@ export const Accounts = () => {
     setCombineOpen(false);
     setSelectedAccountsToCombine([]);
     setTargetAccount(null);
+  };
+
+  const handleCloseEditAccount = () => {
+    setEditAccountOpen(false);
+    setAccountToEdit(null);
+    setEditClientId(null);
+  };
+
+  const openEditAccountDialog = (account) => {
+    setAccountToEdit(account);
+    setEditClientId(account.client_id);
+    setEditAccountOpen(true);
+  };
+
+  const deleteAccount = async (accountId) => {
+    if (!window.confirm("¿Está seguro de que desea eliminar esta cuenta? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    try {
+      // Primero eliminar los detalles de la cuenta
+      const { error: detailsError } = await supabase
+        .from("AccountDetail")
+        .delete()
+        .eq("account_id", accountId);
+
+      if (detailsError) {
+        console.error("Error deleting account details:", detailsError);
+        alert("Error al eliminar los detalles de la cuenta");
+        return;
+      }
+
+      // Luego eliminar la cuenta
+      const { error: accountError } = await supabase
+        .from("Account")
+        .delete()
+        .eq("id", accountId);
+
+      if (accountError) {
+        console.error("Error deleting account:", accountError);
+        alert("Error al eliminar la cuenta");
+        return;
+      }
+
+      alert("Cuenta eliminada exitosamente");
+      await getAccounts();
+      
+      // Si la cuenta eliminada era la activa, seleccionar otra
+      const remainingAccounts = accounts.filter(acc => acc.id !== accountId && acc.status === "OPEN");
+      if (remainingAccounts.length > 0) {
+        setValue(remainingAccounts[0].id);
+      } else {
+        setValue("");
+      }
+    } catch (e) {
+      console.error("Exception deleting account:", e);
+      alert("Error inesperado al eliminar la cuenta");
+    }
+  };
+
+  const editAccount = async () => {
+    if (!editClientId) {
+      alert("Por favor, seleccione un cliente");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("Account")
+        .update({ client_id: editClientId })
+        .eq("id", accountToEdit.id);
+
+      if (error) {
+        console.error("Error updating account:", error);
+        alert("Error al actualizar la cuenta");
+        return;
+      }
+
+      alert("Cuenta actualizada exitosamente");
+      await getAccounts();
+      handleCloseEditAccount();
+    } catch (e) {
+      console.error("Exception updating account:", e);
+      alert("Error inesperado al actualizar la cuenta");
+    }
   };
 
   const openCombineDialog = () => {
@@ -212,16 +300,24 @@ export const Accounts = () => {
           }
         }
 
-        const { error: closeError } = await supabase
+        // Eliminar los detalles de la cuenta antes de eliminarla
+        const { error: deleteDetailsError } = await supabase
+          .from("AccountDetail")
+          .delete()
+          .eq("account_id", accountId);
+
+        if (deleteDetailsError) {
+          console.error("Error deleting account details:", deleteDetailsError);
+        }
+
+        // Eliminar la cuenta combinada completamente
+        const { error: deleteError } = await supabase
           .from("Account")
-          .update({
-            status: "CLOSED",
-            close_date: new Date().toISOString()
-          })
+          .delete()
           .eq("id", accountId);
 
-        if (closeError) {
-          console.error("Error closing combined account:", closeError);
+        if (deleteError) {
+          console.error("Error deleting combined account:", deleteError);
         }
       }
 
@@ -287,14 +383,32 @@ export const Accounts = () => {
             Combinar cuentas
           </Button>
         </div>
-        <Button 
-          variant="contained" 
-          color="secondary" 
-          onClick={() => navigate("/reportes")}
-          size="small"
-        >
-          Reportes
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="contained" 
+            color="secondary" 
+            onClick={() => navigate("/reportes")}
+            size="small"
+          >
+            Reportes
+          </Button>
+          <Button 
+            variant="outlined" 
+            color="primary" 
+            onClick={() => navigate("/clientes")}
+            size="small"
+          >
+            Gestionar Clientes
+          </Button>
+          <Button 
+            variant="outlined" 
+            color="success" 
+            onClick={() => navigate("/productos")}
+            size="small"
+          >
+            Gestionar Productos
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-hidden">
@@ -338,11 +452,7 @@ export const Accounts = () => {
                   {openAccounts.map((account) => (
                     <Tab
                       key={account.id}
-                      label={
-                        <div className="flex items-center gap-2">
-                          <ClientName clientId={account.client_id} />
-                        </div>
-                      }
+                      label={<ClientName clientId={account.client_id} />}
                       value={account.id}
                     />
                   ))}
@@ -480,7 +590,7 @@ export const Accounts = () => {
               <p className="text-sm text-blue-700">
                 Las cuentas seleccionadas se combinarán con la cuenta de{" "}
                 <strong><ClientName clientId={openAccounts.find(a => a.id === targetAccount)?.client_id} /></strong>.
-                Las cuentas combinadas se cerrarán automáticamente.
+                Las cuentas combinadas se eliminarán completamente del sistema.
               </p>
             </div>
           )}
@@ -494,6 +604,37 @@ export const Accounts = () => {
             disabled={!targetAccount || selectedAccountsToCombine.length === 0}
           >
             Combinar Cuentas
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog para editar cuenta */}
+      <Dialog
+        open={editAccountOpen}
+        onClose={handleCloseEditAccount}
+        aria-labelledby="edit-account-dialog-title"
+      >
+        <DialogTitle id="edit-account-dialog-title">
+          Editar Cuenta
+        </DialogTitle>
+        <DialogContent>
+          <div className="mt-2">
+            <p className="mb-4 text-gray-600">Cambiar el cliente asignado a esta cuenta:</p>
+            <NewAccount 
+              onClientSelected={setEditClientId}
+              initialClientId={editClientId}
+            />
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEditAccount}>Cancelar</Button>
+          <Button
+            onClick={editAccount}
+            variant="contained"
+            color="primary"
+            disabled={!editClientId}
+          >
+            Actualizar Cuenta
           </Button>
         </DialogActions>
       </Dialog>

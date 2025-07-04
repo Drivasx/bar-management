@@ -9,10 +9,10 @@ import supabase from "../utils/SupabaseClient";
 import { Button } from "@mui/material";
 import TextField from "@mui/material/TextField";
 
-export const NewAccount = ({ onClientSelected }) => {
+export const NewAccount = ({ onClientSelected, initialClientId }) => {
   const [isNewClient, setIsNewClient] = useState(false);
   const [clients, setClients] = useState([]);
-  const [selectedClientId, setSelectedClientId] = useState(null);
+  const [selectedClientId, setSelectedClientId] = useState(initialClientId || null);
   const initialForm = {
     name: "",
   };
@@ -31,9 +31,13 @@ export const NewAccount = ({ onClientSelected }) => {
     setClients(clients);
   };
   useEffect(() => {
-
     getClients();
   }, []);
+
+  // Actualizar el cliente seleccionado cuando cambie initialClientId
+  useEffect(() => {
+    setSelectedClientId(initialClientId);
+  }, [initialClientId]);
 
   const addClient = async (name) => {
     if (!name.trim()) {
