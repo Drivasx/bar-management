@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import supabase from "../utils/SupabaseClient";
 import {
   Table,
   TableBody,
@@ -25,6 +24,12 @@ import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
 import { formatCurrency } from "../helpers/CurrencyFormatHelper";
 import { useForm } from "../hooks/useForm";
+import { 
+  AccountService, 
+  AccountDetailService, 
+  ProductService, 
+  CategoryService 
+} from "../services";
 
 export const AccountDetails = ({ accountId, setAccounts }) => {
   const [accountDetails, setAccountDetails] = useState([]);
@@ -58,80 +63,34 @@ export const AccountDetails = ({ accountId, setAccounts }) => {
 
     const fetchAccountInfo = async () => {
       try {
-        const { data, error } = await supabase
-          .from("Account")
-          .select("*")
-          .eq("id", accountId)
-          .single();
-
-        if (error) {
-          console.error("Error fetching account info:", error);
-        } else {
-          setAccountInfo(data);
-          // Verificar si la cuenta está bloqueada por abonos
-          setHasPayments(data?.status === "BLOCKED");
-        }
-      } catch (e) {
-        console.error("Exception in fetchAccountInfo:", e);
+        const data = await AccountService.getAccountById(accountId);
+        setAccountInfo(data);
+        // Verificar si la cuenta está bloqueada por abonos
+        setHasPayments(data?.status === "BLOCKED");
+      } catch (error) {
+        console.error("Error fetching account info:", error);
       }
     };
 
     const fetchAccountDetails = async () => {
       try {
         setLoading(true);
-
-        const { data, error } = await supabase
-          .from("AccountDetail")
-          .select(
-            `
-            account_id,
-            product_id,
-            quantity,
-            unit_price,
-            total_per_item,
-            Product (
-              id,
-              name,
-              price,
-              category_id,
-              Category (
-                id,
-                name
-              )
-            )
-          `
-          )
-          .eq("account_id", accountId);
-
-        if (error) {
-          console.error("Error fetching account details:", error);
-        } else {
-          setAccountDetails(data || []);
-          calculateTotal(data);
-        }
-      } catch (e) {
-        console.error("Exception in fetchAccountDetails:", e);
+        const data = await AccountDetailService.getAccountDetails(accountId);
+        setAccountDetails(data);
+        calculateTotal(data);
+      } catch (error) {
+        console.error("Error fetching account details:", error);
       } finally {
         setLoading(false);
       }
     };
 
     const fetchProducts = async () => {
-      const { data, error } = await supabase.from("Product").select(`
-          id, 
-          name, 
-          price, 
-          category_id,
-          Category (
-            id,
-            name
-          )
-        `);
-
-      if (error) {
+      try {
+        const data = await ProductService.getAllProducts();
+        setProducts(data);
+      } catch (error) {
         console.error("Error fetching products:", error);
-      } else {
-        setProducts(data || []);
       }
     };
 
@@ -156,16 +115,15 @@ export const AccountDetails = ({ accountId, setAccounts }) => {
 
   useEffect(() => {
     const getCategories = async () => {
-      const { data, error } = await supabase.from("Category").select("*");
-      if (error) {
+      try {
+        const data = await CategoryService.getAllCategories();
+        setCategories(data);
+      } catch (error) {
         console.error("Error fetching categories:", error);
-      } else {
-        setCategories(data || []);
       }
     }
 
     getCategories();
-  
   }, [])
   
 
@@ -183,10 +141,11 @@ export const AccountDetails = ({ accountId, setAccounts }) => {
   };
 
   const updateAccountTotal = async (total) => {
-    await supabase
-      .from("Account")
-      .update({ total_amount: total })
-      .eq("id", accountId);
+    try {
+      await AccountService.updateAccountTotal(accountId, total);
+    } catch (error) {
+      console.error("Error updating account total:", error);
+    }
   };
 
   const addProductToAccount = async () => {
@@ -200,135 +159,52 @@ export const AccountDetails = ({ accountId, setAccounts }) => {
       if (!product) return;
 
       const unitPrice = product.price;
-      const totalPerItem = unitPrice * quantity;
 
-      const existingItem = accountDetails.find(
-        (item) => item.product_id === Number(selectedProduct)
+      await AccountDetailService.addProductToAccount(
+        accountId, 
+        selectedProduct, 
+        quantity, 
+        unitPrice
       );
 
-      let result;
-      if (existingItem) {
-        const newQuantity = existingItem.quantity + quantity;
-        const newTotal = unitPrice * newQuantity;
+      // Refrescar los detalles de la cuenta
+      const updatedDetails = await AccountDetailService.getAccountDetails(accountId);
+      setAccountDetails(updatedDetails);
+      calculateTotal(updatedDetails);
 
-        result = await supabase
-          .from("AccountDetail")
-          .update({
-            quantity: newQuantity,
-            total_per_item: newTotal,
-          })
-          .eq("account_id", accountId)
-          .eq("product_id", selectedProduct)
-          .select();
-      } else {
-        result = await supabase
-          .from("AccountDetail")
-          .insert({
-            account_id: accountId,
-            product_id: selectedProduct,
-            quantity: quantity,
-            unit_price: unitPrice,
-            total_per_item: totalPerItem,
-          })
-          .select();
-      }
-
-      if (result.error) {
-        console.error("Error adding product to account:", result.error);
-        alert("Error al agregar producto");
-      } else {
-        const { data } = await supabase
-          .from("AccountDetail")
-          .select(
-            `
-            account_id,
-            product_id,
-            quantity,
-            unit_price,
-            total_per_item,
-            Product (
-              id,
-              name,
-              price,
-              category_id,
-              Category (
-                id,
-                name
-              )
-            )
-          `
-          )
-          .eq("account_id", accountId);
-
-        setAccountDetails(data || []);
-        calculateTotal(data);
-
-        setSelectedProduct("");
-        setQuantity(1);
-      }
-    } catch (e) {
-      console.error("Exception adding product:", e);
+      setSelectedProduct("");
+      setQuantity(1);
+    } catch (error) {
+      console.error("Error adding product to account:", error);
+      alert(`Error al agregar producto: ${error.message}`);
     }
   };
 
   const removeProductFromAccount = async (productId) => {
     try {
-      const { error } = await supabase
-        .from("AccountDetail")
-        .delete()
-        .eq("account_id", accountId)
-        .eq("product_id", productId);
-
-      if (error) {
-        console.error("Error removing product:", error);
-        alert("Error al eliminar producto");
-      } else {
-        const updatedDetails = accountDetails.filter(
-          (item) => item.product_id !== productId
-        );
-        setAccountDetails(updatedDetails);
-        calculateTotal(updatedDetails);
-      }
-    } catch (e) {
-      console.error("Exception removing product:", e);
+      await AccountDetailService.removeProductFromAccount(accountId, productId);
+      
+      const updatedDetails = accountDetails.filter(
+        (item) => item.product_id !== productId
+      );
+      setAccountDetails(updatedDetails);
+      calculateTotal(updatedDetails);
+    } catch (error) {
+      console.error("Error removing product:", error);
+      alert(`Error al eliminar producto: ${error.message}`);
     }
   };
 
   const closeAccount = async (accountId) => {
     try {
-      const now = new Date();
-
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const seconds = String(now.getSeconds()).padStart(2, '0');
+      await AccountService.closeAccount(accountId, totalAmount);
       
-      const localTimestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-      
-      const { data, error } = await supabase
-        .from("Account")
-        .update({
-          status: "CLOSED",
-          close_date: localTimestamp,
-          total_amount: totalAmount,
-        })
-        .eq("id", accountId)
-        .select();
-        
-      
-      if (error) {
-        console.error("Error closing account:", error);
-        alert("Error al cerrar la cuenta: " + error.message);
-      } else {
-        setAccounts((prevAccounts) =>
-          prevAccounts.filter((account) => account.id !== accountId)
-        );
-      }
-    } catch (e) {
-      console.error("Exception in closeAccount:", e);
-      alert("Error inesperado al cerrar la cuenta");
+      setAccounts((prevAccounts) =>
+        prevAccounts.filter((account) => account.id !== accountId)
+      );
+    } catch (error) {
+      console.error("Error closing account:", error);
+      alert(`Error al cerrar la cuenta: ${error.message}`);
     }
   };
 
@@ -423,106 +299,36 @@ export const AccountDetails = ({ accountId, setAccounts }) => {
 
   const addRound = async (round) => {
     try {
-      for (const item of round) {
-        const { Product, ...itemData } = item;
-
-        const existingItem = accountDetails.find(
-          (detail) => detail.product_id === item.product_id
-        );
-
-        if (existingItem) {
-          const newQuantity = existingItem.quantity + item.quantity;
-          const newTotalPerItem = existingItem.unit_price * newQuantity;
-
-          const { error } = await supabase
-            .from("AccountDetail")
-            .update({
-              quantity: newQuantity,
-              total_per_item: newTotalPerItem,
-            })
-            .eq("account_id", accountId)
-            .eq("product_id", item.product_id);
-
-          if (error) {
-            console.error("Error updating item:", error);
-            throw error;
-          }
-        } else {
-          const { error } = await supabase
-            .from("AccountDetail")
-            .insert(itemData);
-
-          if (error) {
-            console.error("Error inserting item:", error);
-            throw error;
-          }
-        }
-      }
+      await AccountDetailService.addRoundToAccount(accountId, round);
 
       alert("Ronda agregada con éxito");
-      const { data } = await supabase
-        .from("AccountDetail")
-        .select(
-          `
-            account_id,
-            product_id,
-            quantity,
-            unit_price,
-            total_per_item,
-            Product (
-              id,
-              name,
-              price,
-              category_id,
-              Category (
-                id,
-                name
-              )
-            )
-          `
-        )
-        .eq("account_id", accountId);
-
-      setAccountDetails(data || []);
-      calculateTotal(data);
-    } catch (e) {
-      console.error("Error adding round:", e);
-      alert("Error al agregar la ronda");
+      
+      // Refrescar los detalles de la cuenta
+      const updatedDetails = await AccountDetailService.getAccountDetails(accountId);
+      setAccountDetails(updatedDetails);
+      calculateTotal(updatedDetails);
+    } catch (error) {
+      console.error("Error adding round:", error);
+      alert(`Error al agregar la ronda: ${error.message}`);
     }
   };
 
   const createProduct = async () => {
-    const productData = {
-      name: name,
-      category_id: category,
-      price: price, 
-    };
     try {
-      const { data, error } = await supabase
-        .from("Product")
-        .insert(productData)
-        .select(`
-          id,
-          name,
-          price,
-          category_id,
-          Category (
-            id,
-            name
-          )`);
-      if (error) {
-        console.error("Error creating product:", error);
-        alert("Error al crear producto");
-      } else {
-        const newProduct = data[0];
-        setProducts((prevProducts) => [...prevProducts, newProduct]);
-        setSelectedProduct(newProduct.id);
-        setOpen(false);
-        alert("Producto creado con éxito");
-      }
-    } catch (e) {
-      console.error("Exception creating product:", e);
-      alert("Error inesperado al crear producto");
+      const productData = {
+        name: name,
+        category_id: category,
+        price: price, 
+      };
+
+      const newProduct = await ProductService.createProduct(productData);
+      setProducts((prevProducts) => [...prevProducts, newProduct]);
+      setSelectedProduct(newProduct.id);
+      setOpen(false);
+      alert("Producto creado con éxito");
+    } catch (error) {
+      console.error("Error creating product:", error);
+      alert(`Error al crear producto: ${error.message}`);
     }
   };
 

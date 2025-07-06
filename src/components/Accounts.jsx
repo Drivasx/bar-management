@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import supabase from "../utils/SupabaseClient";
 import Box from "@mui/material/Box";
 import Tab from "@mui/material/Tab";
 import TabContext from "@mui/lab/TabContext";
@@ -13,6 +12,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import { NewAccount } from "./NewAccount";
 import { AccountDetails } from "./AccountDetails";
 import { useNavigate } from "react-router";
+import { AccountService, ClientService } from "../services";
 
 export const ClientName = ({ clientId }) => {
   const [clientName, setClientName] = useState("");
@@ -20,14 +20,12 @@ export const ClientName = ({ clientId }) => {
     if (!clientId) return;
 
     const fetchClient = async () => {
-      const { data, error } = await supabase
-        .from("Client")
-        .select("name")
-        .eq("id", clientId)
-        .single();
-
-      if (error) console.error("Error fetching client:", error);
-      else setClientName(data?.name);
+      try {
+        const client = await ClientService.getClientById(clientId);
+        setClientName(client?.name || "");
+      } catch (error) {
+        console.error("Error fetching client:", error);
+      }
     };
 
     fetchClient();
@@ -56,44 +54,17 @@ export const Accounts = () => {
 
   const getAccounts = async () => {
     try {
-      const { data: accounts, error } = await supabase
-        .from("Account")
-        .select("*")
-        .order("created_at", { ascending: true });
-
-      if (error) {
-        console.error("Error fetching accounts:", error);
-      } else {
-        if (accounts && accounts.length > 0) {
-          // Calcular totales para cada cuenta
-          const accountsWithTotals = await Promise.all(
-            accounts.map(async (account) => {
-              const { data: details, error: detailsError } = await supabase
-                .from("AccountDetail")
-                .select("total_per_item")
-                .eq("account_id", account.id);
-              
-              if (!detailsError && details) {
-                const totalAmount = details.reduce((sum, item) => sum + (item.total_per_item || 0), 0);
-                return { ...account, total_amount: totalAmount };
-              }
-              return account;
-            })
-          );
-          
-          setAccounts(accountsWithTotals);
-          const openAccounts = accountsWithTotals.filter(
-            (account) => account.status === "OPEN"
-          );
-          if (openAccounts.length > 0 && !value) {
-            setValue(openAccounts[0].id);
-          }
-        } else {
-          console.log("No accounts found in the database");
-        }
+      const accountsData = await AccountService.getAllAccounts();
+      
+      setAccounts(accountsData);
+      const openAccounts = accountsData.filter(
+        (account) => account.status === "OPEN"
+      );
+      if (openAccounts.length > 0 && !value) {
+        setValue(openAccounts[0].id);
       }
-    } catch (e) {
-      console.error("Exception in getAccounts:", e);
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
     }
   };
 
@@ -129,30 +100,8 @@ export const Accounts = () => {
     }
 
     try {
-      // Primero eliminar los detalles de la cuenta
-      const { error: detailsError } = await supabase
-        .from("AccountDetail")
-        .delete()
-        .eq("account_id", accountId);
-
-      if (detailsError) {
-        console.error("Error deleting account details:", detailsError);
-        alert("Error al eliminar los detalles de la cuenta");
-        return;
-      }
-
-      // Luego eliminar la cuenta
-      const { error: accountError } = await supabase
-        .from("Account")
-        .delete()
-        .eq("id", accountId);
-
-      if (accountError) {
-        console.error("Error deleting account:", accountError);
-        alert("Error al eliminar la cuenta");
-        return;
-      }
-
+      await AccountService.deleteAccount(accountId);
+      
       alert("Cuenta eliminada exitosamente");
       await getAccounts();
       
@@ -163,9 +112,9 @@ export const Accounts = () => {
       } else {
         setValue("");
       }
-    } catch (e) {
-      console.error("Exception deleting account:", e);
-      alert("Error inesperado al eliminar la cuenta");
+    } catch (error) {
+      console.error("Exception deleting account:", error);
+      alert(`Error al eliminar la cuenta: ${error.message}`);
     }
   };
 
@@ -176,23 +125,14 @@ export const Accounts = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from("Account")
-        .update({ client_id: editClientId })
-        .eq("id", accountToEdit.id);
-
-      if (error) {
-        console.error("Error updating account:", error);
-        alert("Error al actualizar la cuenta");
-        return;
-      }
-
+      await AccountService.updateAccount(accountToEdit.id, { client_id: editClientId });
+      
       alert("Cuenta actualizada exitosamente");
       await getAccounts();
       handleCloseEditAccount();
-    } catch (e) {
-      console.error("Exception updating account:", e);
-      alert("Error inesperado al actualizar la cuenta");
+    } catch (error) {
+      console.error("Exception updating account:", error);
+      alert(`Error al actualizar la cuenta: ${error.message}`);
     }
   };
 
@@ -216,22 +156,15 @@ export const Accounts = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("Account")
-        .insert([{ client_id: clientId }])
-        .select();
-
-      if (error) {
-        alert("Error al crear la cuenta: " + error.message);
-      } else {
-        setAccounts((prevAccounts) => [...prevAccounts, data[0]]);
-        setValue(data[0].id); // Establecer la nueva cuenta como activa
-        setOpen(false);
-        setClientId(null);
-      }
-    } catch (e) {
-      console.error("Exception in addAccount:", e);
-      alert("Error inesperado al crear la cuenta");
+      const newAccount = await AccountService.createAccount(clientId);
+      
+      setAccounts((prevAccounts) => [...prevAccounts, newAccount]);
+      setValue(newAccount.id); // Establecer la nueva cuenta como activa
+      setOpen(false);
+      setClientId(null);
+    } catch (error) {
+      console.error("Exception in addAccount:", error);
+      alert(`Error al crear la cuenta: ${error.message}`);
     }
   };
 
@@ -242,99 +175,8 @@ export const Accounts = () => {
     }
 
     try {
-      // Obtener todos los detalles de las cuentas a combinar
-      for (const accountId of selectedAccountsToCombine) {
-        const { data: accountDetails, error: detailsError } = await supabase
-          .from("AccountDetail")
-          .select("*")
-          .eq("account_id", accountId);
-
-        if (detailsError) {
-          console.error("Error fetching account details:", detailsError);
-          continue;
-        }
-
-        for (const detail of accountDetails) {
-          const { data: existingDetail, error: checkError } = await supabase
-            .from("AccountDetail")
-            .select("*")
-            .eq("account_id", targetAccount)
-            .eq("product_id", detail.product_id)
-            .single();
-
-          if (checkError && checkError.code !== 'PGRST116') {
-            console.error("Error checking existing detail:", checkError);
-            continue;
-          }
-
-          if (existingDetail) {
-            const newQuantity = existingDetail.quantity + detail.quantity;
-            const newTotal = existingDetail.unit_price * newQuantity;
-
-            const { error: updateError } = await supabase
-              .from("AccountDetail")
-              .update({
-                quantity: newQuantity,
-                total_per_item: newTotal
-              })
-              .eq("account_id", targetAccount)
-              .eq("product_id", detail.product_id);
-
-            if (updateError) {
-              console.error("Error updating existing detail:", updateError);
-            }
-          } else {
-            const { error: insertError } = await supabase
-              .from("AccountDetail")
-              .insert({
-                account_id: targetAccount,
-                product_id: detail.product_id,
-                quantity: detail.quantity,
-                unit_price: detail.unit_price,
-                total_per_item: detail.total_per_item
-              });
-
-            if (insertError) {
-              console.error("Error inserting new detail:", insertError);
-            }
-          }
-        }
-
-        // Eliminar los detalles de la cuenta antes de eliminarla
-        const { error: deleteDetailsError } = await supabase
-          .from("AccountDetail")
-          .delete()
-          .eq("account_id", accountId);
-
-        if (deleteDetailsError) {
-          console.error("Error deleting account details:", deleteDetailsError);
-        }
-
-        // Eliminar la cuenta combinada completamente
-        const { error: deleteError } = await supabase
-          .from("Account")
-          .delete()
-          .eq("id", accountId);
-
-        if (deleteError) {
-          console.error("Error deleting combined account:", deleteError);
-        }
-      }
-
-      const { data: finalDetails, error: finalError } = await supabase
-        .from("AccountDetail")
-        .select("total_per_item")
-        .eq("account_id", targetAccount);
-
-      if (!finalError && finalDetails) {
-        const totalAmount = finalDetails.reduce((sum, item) => sum + item.total_per_item, 0);
-        
-        await supabase
-          .from("Account")
-          .update({ total_amount: totalAmount })
-          .eq("id", targetAccount);
-      }
-
+      await AccountService.combineAccounts(targetAccount, selectedAccountsToCombine);
+      
       alert("Cuentas combinadas exitosamente");
       
       await getAccounts();
@@ -342,9 +184,9 @@ export const Accounts = () => {
       setRefreshKey(prev => prev + 1); 
 
       handleCloseCombine();
-    } catch (e) {
-      console.error("Exception combining accounts:", e);
-      alert("Error al combinar cuentas");
+    } catch (error) {
+      console.error("Exception combining accounts:", error);
+      alert(`Error al combinar cuentas: ${error.message}`);
     }
   };
 
