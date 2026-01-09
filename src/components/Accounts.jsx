@@ -218,7 +218,13 @@ export const Accounts = () => {
     try {
       const { data, error } = await supabase
         .from("Account")
-        .insert([{ client_id: clientId }])
+        .insert([{ 
+          client_id: clientId,
+          // Proveer fecha de apertura y valores por defecto para evitar errores NOT NULL
+          open_date: new Date().toISOString(),
+          status: "OPEN",
+          total_amount: 0
+        }])
         .select();
 
       if (error) {
